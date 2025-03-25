@@ -1,22 +1,25 @@
 const readline = require('readline');
 const Joi = require('joi');
 
+const indicatorPattern = /^\s*\d+\s*$/; // число, возможно с пробелами вокруг
+const decimal = 10; // 10-ая система счисления
+
 const schemaNumber = Joi.number().min(1).required().error(() => {
-  throw new Error('Некорректное значение');
+  throw new Error('Число должно быть от 1');
 });
 
-const schemaIndicator = Joi.array().items(Joi.string().pattern((/^\d+$|^\d+,\s$/)).required()).required().error(() => {
-  throw new Error('Некорректные индикаторы');
+const schemaIndicator = Joi.array().items(Joi.string().pattern((indicatorPattern)).required()).required().error(() => {
+  throw new Error('Индикатор должен быть числом');
 });
 
-const rl = readline.createInterface({
+const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
 function question(prompt) {
   return new Promise((resolve) => {
-    rl.question(prompt, resolve);
+    readlineInterface.question(prompt, resolve);
   });
 }
 
@@ -27,11 +30,11 @@ async function processInput() {
 
     const departments = [];
 
-    for (let departmentIndex = 0; departmentIndex < departmentCount; ++departmentIndex) {
-      const line = await question(`Введите индикаторы отдела ${departmentIndex + 1}: `);
+    for (const [index] of Array(departmentCount).entries()) {
+      const line = await question(`Введите индикаторы отдела ${index + 1}: `);
       const indicators = line.split(', ').map(number => number.trim());
       const validatedIndicators = await schemaIndicator.validateAsync(indicators, { context: true, convert: true });
-      departments.push(validatedIndicators.map(num => parseInt(num, 10)));
+      departments.push(validatedIndicators.map(num => parseInt(num, decimal)));
     }
 
     const inputThreshold = await question('Введите порог стабильности: ');
@@ -60,7 +63,7 @@ async function processInput() {
   } catch (error) {
     console.error('Ошибка:', error.message);
   } finally {
-    rl.close();
+    readlineInterface.close();
   }
 }
 
